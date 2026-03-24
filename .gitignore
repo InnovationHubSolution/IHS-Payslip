@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Local runtime/data files
+settings.json
+worker_records.csv
+worker_records.json

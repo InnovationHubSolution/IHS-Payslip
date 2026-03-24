@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payslip – Worker Records</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            max-width: 920px;
+            margin: 2rem auto;
+            padding: 0 1rem 2rem;
+            background: #f8f8f8;
+            color: #222;
+        }
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .btn-back { background: #e5e7eb; color: #374151; }
+        .btn-print { background: #1d4ed8; color: #fff; }
+        .btn-paid { background: #059669; color: #fff; }
+        .sheet {
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 1.25rem;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .brand img {
+            height: 84px;
+            width: auto;
+            display: block;
+        }
+        .brand .title {
+            text-align: right;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #111827;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 0.75rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .meta-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 0.6rem 0.75rem;
+        }
+        .meta-item .label {
+            color: #6b7280;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+        .meta-item .value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        .totals-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin: 0.75rem 0 1rem;
+        }
+        .total-box {
+            padding: 0.8rem 1rem;
+            border-radius: 4px;
+            border-left: 4px solid #166534;
+            background: #f0fdf4;
+        }
+        .total-box.deduct {
+            border-left-color: #b45309;
+            background: #fffbeb;
+        }
+        .total-box.net {
+            border-left-color: #1d4ed8;
+            background: #eff6ff;
+        }
+        .total-box .label { color: #166534; font-weight: 600; }
+        .total-box.deduct .label { color: #92400e; }
+        .total-box.net .label { color: #1e40af; }
+        .total-box .value { font-size: 1.35rem; font-weight: 800; color: #14532d; }
+        .total-box.deduct .value { color: #b45309; }
+        .total-box.net .value { color: #1e3a8a; }
+        .vnpf-note {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin: 0 0 1rem 0;
+            line-height: 1.45;
+        }
+        .vnpf-note a { color: #2563eb; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            border: 1px solid #333;
+        }
+        th, td {
+            border: 1px solid #333;
+            padding: 0.4rem 0.5rem;
+            text-align: left;
+            background: #fff;
+        }
+        th { background: #f3f4f6; font-weight: 700; }
+        .num { text-align: right; }
+        .empty {
+            text-align: center;
+            color: #6b7280;
+            padding: 1rem;
+            border: 1px dashed #d1d5db;
+            border-radius: 6px;
+            background: #fff;
+        }
+        @media print {
+            body { background: #fff; margin: 0; max-width: none; }
+            .topbar, .actions { display: none !important; }
+            .sheet { border: none; padding: 0; }
+            .brand img { height: 70px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1 style="margin: 0;">Payslip</h1>
+        <div style="display: flex; gap: 0.5rem;">
+            <a class="btn btn-back" href="{{ payout_url }}">← Back to payout</a>
+            <button type="button" class="btn btn-print" onclick="window.print()">Print</button>
+        </div>
+    </div>
+
+    <div class="sheet">
+        <div class="brand">
+            <img src="{{ url_for('static', filename='images/innovatel-hub-logo.png') }}" alt="Innovatel Hub Solution Limited logo">
+            <div class="title">Worker Payslip</div>
+        </div>
+
+        <div class="meta-grid">
+            <div class="meta-item">
+                <div class="label">Worker</div>
+                <div class="value">{{ worker_label }}</div>
+            </div>
+            <div class="meta-item">
+                <div class="label">Period</div>
+                <div class="value">{{ period_label }}</div>
+            </div>
+            <div class="meta-item">
+                <div class="label">Generated on</div>
+                <div class="value">{{ generated_on }}</div>
+            </div>
+        </div>
+
+        <p class="vnpf-note">
+            <strong>VNPF (employee):</strong> {{ '%.1f' % vnpf_rate_percent }}% of gross pay (total pay) per line.
+            Vanuatu National Provident Fund contributions are described on the
+            <a href="https://www.vnpf.com.vu/employers.html" target="_blank" rel="noopener">VNPF Employers</a> page
+            (published total rate is often <strong>8%</strong> of remuneration: <strong>4%</strong> employee + <strong>4%</strong> employer—change the % in Settings if you need the official employee share).
+        </p>
+
+        <div class="totals-row">
+            <div class="total-box">
+                <div class="label">Gross (total pay)</div>
+                <div class="value">{{ "{:,.0f}".format(total_payout) }} Vt</div>
+            </div>
+            <div class="total-box deduct">
+                <div class="label">VNPF employee ({{ '%.1f' % vnpf_rate_percent }}%)</div>
+                <div class="value">− {{ "{:,.0f}".format(total_vnpf) }} Vt</div>
+            </div>
+            <div class="total-box net">
+                <div class="label">Net after VNPF</div>
+                <div class="value">{{ "{:,.0f}".format(total_net_after_vnpf) }} Vt</div>
+            </div>
+        </div>
+
+        {% if records %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Worker</th>
+                    <th>In</th>
+                    <th>Out</th>
+                    <th class="num">Break</th>
+                    <th class="num">Hours</th>
+                    <th class="num">Gross</th>
+                    <th class="num">VNPF</th>
+                    <th class="num">Net</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in records %}
+                <tr>
+                    <td>{{ r.date_display or r.date }}</td>
+                    <td>{{ r.worker_name }}</td>
+                    <td>{{ r.in_time }}</td>
+                    <td>{{ r.out_time }}</td>
+                    <td class="num">{{ r.break_minutes or 0 }} min</td>
+                    <td class="num">{{ r.hours_worked }}</td>
+                    <td class="num">{% if r.total_pay is not none %}{{ "{:,.0f}".format(r.total_pay) }} Vt{% else %}—{% endif %}</td>
+                    <td class="num">{% if r.total_pay is not none %}− {{ "{:,.0f}".format(r.vnpf_amount) }} Vt{% else %}—{% endif %}</td>
+                    <td class="num">{% if r.net_after_vnpf is not none %}{{ "{:,.0f}".format(r.net_after_vnpf) }} Vt{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No unpaid records for this selection.</div>
+        {% endif %}
+    </div>
+
+    {% if records %}
+    <div class="actions" style="margin-top: 1rem;">
+        <form method="post" action="{{ payslip_self_url }}"
+              onsubmit="return confirm('Mark all records in this payslip as paid?');">
+            <input type="hidden" name="action" value="mark_selection_paid">
+            <button type="submit" class="btn btn-paid">Mark this payslip as paid</button>
+        </form>
+    </div>
+    {% endif %}
+</body>
+</html>

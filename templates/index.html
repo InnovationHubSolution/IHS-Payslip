@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worker Records</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f8f8f8;
+            color: #222;
+        }
+        h1 {
+            font-size: 1.35rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        .add-form {
+            background: #fff;
+            padding: 1rem 1.25rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1.25rem;
+        }
+        .add-form h2 { font-size: 1rem; margin: 0 0 0.75rem 0; color: #444; }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.75rem 1rem;
+            align-items: end;
+            margin-bottom: 0.75rem;
+        }
+        .form-row label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 0.25rem;
+            color: #555;
+        }
+        .form-row input {
+            width: 100%;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+        .form-row input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        .btn { padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; }
+        .btn-add { background: #2563eb; color: #fff; }
+        .btn-add:hover { background: #1d4ed8; }
+        .btn-del { background: #dc2626; color: #fff; font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+        .btn-del:hover { background: #b91c1c; }
+        .errors {
+            background: #fef2f2;
+            color: #b91c1c;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 0.75rem;
+            font-size: 0.85rem;
+        }
+        .errors ul { margin: 0; padding-left: 1.25rem; }
+        .table-wrap {
+            background: #fff;
+            border: 1px solid #333;
+            overflow-x: auto;
+        }
+        table.records {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        table.records th,
+        table.records td {
+            border: 1px solid #333;
+            padding: 0.4rem 0.6rem;
+            text-align: left;
+        }
+        table.records th {
+            background: #f0f0f0;
+            font-weight: 700;
+        }
+        table.records td { background: #fff; }
+        table.records tbody tr:nth-child(even) td { background: #fafafa; }
+        .col-date { width: 10%; }
+        .col-name { width: 22%; }
+        .col-in { width: 12%; }
+        .col-out { width: 12%; }
+        .col-break { width: 8%; }
+        .col-hours { width: 12%; }
+        .col-pay { width: 14%; }
+        .col-del { width: 6%; text-align: center; }
+        .col-paid { width: 10%; text-align: center; }
+        .num { text-align: right; }
+        .total-row td { background: #f0f0f0; font-weight: 700; border-top: 2px solid #333; }
+        .total-earnings { font-size: 1rem; color: #166534; }
+        .filter-bar {
+            background: #fff;
+            padding: 0.75rem 1.25rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+        .filter-bar label { font-size: 0.8rem; font-weight: 600; color: #555; display: block; margin-bottom: 0.25rem; }
+        .filter-bar input { padding: 0.4rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
+        .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+        .badge-paid { background: #d1fae5; color: #065f46; }
+        .badge-unpaid { background: #fef3c7; color: #92400e; }
+        .btn-paid { background: #059669; color: #fff; font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+        .btn-paid:hover { background: #047857; }
+    </style>
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h1 style="margin: 0;">Worker Records</h1>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="{{ url_for('payout') }}" class="btn" style="background: #059669; color: #fff;">Payout</a>
+            <a href="{{ url_for('settings') }}" class="btn" style="background: #e5e7eb; color: #374151;">Settings</a>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <form method="get" action="{{ url_for('index') }}" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+            <div>
+                <label for="filter_worker">Worker</label>
+                <input type="text" id="filter_worker" name="worker" placeholder="Search by name"
+                       value="{{ filter_worker or '' }}">
+            </div>
+            <div>
+                <label for="filter_week">Week of</label>
+                <input type="date" id="filter_week" name="week" value="{{ filter_week or '' }}">
+            </div>
+            <div>
+                <label for="filter_from">From</label>
+                <input type="date" id="filter_from" name="from" value="{{ filter_from or '' }}" placeholder="Start day">
+            </div>
+            <div>
+                <label for="filter_to">To</label>
+                <input type="date" id="filter_to" name="to" value="{{ filter_to or '' }}" placeholder="End day">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <input type="hidden" name="hide_paid" value="0">
+                <input type="checkbox" id="hide_paid" name="hide_paid" value="1" {{ 'checked' if hide_paid else '' }}>
+                <label for="hide_paid" style="margin-bottom: 0;">Hide paid</label>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-add">Filter</button>
+            </div>
+            {% if filter_worker or filter_week or filter_from or filter_to %}
+            <div>
+                <a href="{{ url_for('index', hide_paid='1' if hide_paid else '0') }}" class="btn btn-back" style="background: #e5e7eb; color: #374151;">Show all</a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if filter_worker or filter_week or filter_from or filter_to %}
+    <div class="filter-bar" style="margin-top: -0.5rem;">
+        <strong>Unpaid (selection):</strong> {{ "{:,.0f}".format(total_earnings) }} Vt
+        <a href="{{ url_for('payout') }}" class="btn btn-paid" style="margin-left: 0.5rem;">Go to Payout →</a>
+    </div>
+    {% endif %}
+
+    <div class="add-form">
+        <h2>Add record</h2>
+        {% if errors %}
+        <div class="errors">
+            <ul>
+                {% for err in errors %}
+                <li>{{ err }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        <form method="post" action="{{ url_for('index') }}">
+            <input type="hidden" name="action" value="add">
+            <div class="form-row">
+                <div>
+                    <label for="date">Date</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div>
+                    <label for="worker_name">Worker Name</label>
+                    <input type="text" id="worker_name" name="worker_name" required placeholder="Name">
+                </div>
+                <div>
+                    <label for="time_in">In Time</label>
+                    <input type="text" id="time_in" name="time_in" required placeholder="8:00 AM">
+                </div>
+                <div>
+                    <label for="time_out">Out Time</label>
+                    <input type="text" id="time_out" name="time_out" required placeholder="5:00 PM">
+                </div>
+                <div>
+                    <label for="break_minutes">Break (min)</label>
+                    <input type="number" id="break_minutes" name="break_minutes" min="0" step="1"
+                           value="{{ default_break_minutes if default_break_minutes is not none else '0' }}"
+                           placeholder="0">
+                </div>
+                <div>
+                    <label for="hourly_rate">Hourly rate (VUV)</label>
+                    <input type="number" id="hourly_rate" name="hourly_rate" min="0" step="1" placeholder="0"
+                           value="{{ default_hourly_rate if default_hourly_rate is not none else '' }}">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-add">Add row</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-wrap">
+        <table class="records">
+            <thead>
+                <tr>
+                    <th class="col-date">Date</th>
+                    <th class="col-name">Worker Name</th>
+                    <th class="col-in">In Time</th>
+                    <th class="col-out">Out Time</th>
+                    <th class="col-break">Break</th>
+                    <th class="col-hours">Hours Worked</th>
+                    <th class="col-pay">Total Pay</th>
+                    <th class="col-paid">Paid</th>
+                    <th class="col-del"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>{{ record.date_display or record.date }}</td>
+                    <td>{{ record.worker_name }}</td>
+                    <td>{{ record.in_time }}</td>
+                    <td>{{ record.out_time }}</td>
+                    <td class="num">{{ record.break_minutes or 0 }} min</td>
+                    <td class="num">{{ record.hours_worked }}</td>
+                    <td class="num">{% if record.total_pay is not none %}{{ "{:,.0f}".format(record.total_pay) }} Vt{% else %}—{% endif %}</td>
+                    <td class="col-paid">
+                        {% if record.paid %}
+                        <span class="badge badge-paid">Paid</span>
+                        {% else %}
+                        <span class="badge badge-unpaid">Unpaid</span>
+                        <form method="post" action="{{ url_for('index') }}" style="display:inline;">
+                            <input type="hidden" name="action" value="mark_paid">
+                            <input type="hidden" name="index" value="{{ record._index }}">
+                            <button type="submit" class="btn btn-paid">Mark paid</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                    <td class="col-del">
+                        <a href="{{ url_for('edit_record', index=record._index) }}" class="btn" style="background: #e5e7eb; color: #374151; font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-right: 0.25rem;">Edit</a>
+                        <form method="post" action="{{ url_for('index') }}" style="display:inline;" onsubmit="return confirm('Remove this row?');">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="index" value="{{ record._index }}">
+                            <button type="submit" class="btn btn-del">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not records %}
+                <tr>
+                    <td colspan="9" style="text-align: center; color: #888;">No records yet. Add one above.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+            {% if records and total_earnings is defined %}
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="6" style="text-align: right; font-weight: 700;">{{ 'Unpaid (selection):' if (filter_worker or filter_week or filter_from or filter_to) else 'Unpaid (all):' }}</td>
+                    <td class="num total-earnings">{{ "{:,.0f}".format(total_earnings) }} Vt</td>
+                    <td colspan="2"></td>
+                </tr>
+            </tfoot>
+            {% endif %}
+        </table>
+    </div>
+</body>
+</html>

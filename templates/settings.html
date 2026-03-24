@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings – Worker Records</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            max-width: 480px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f8f8f8;
+            color: #222;
+        }
+        h1 { font-size: 1.35rem; margin-bottom: 1rem; color: #333; }
+        .card {
+            background: #fff;
+            padding: 1.25rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem; color: #555; }
+        input {
+            width: 100%;
+            max-width: 12rem;
+            padding: 0.5rem 0.6rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-save { background: #2563eb; color: #fff; }
+        .btn-save:hover { background: #1d4ed8; }
+        .btn-back { background: #e5e7eb; color: #374151; }
+        .btn-back:hover { background: #d1d5db; }
+        .message { padding: 0.5rem 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem; }
+        .message.success { background: #d1fae5; color: #065f46; }
+        .message.error { background: #fee2e2; color: #991b1b; }
+        .nav { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="{{ url_for('index') }}" class="btn btn-back">← Back to records</a>
+    </div>
+    <h1>Settings</h1>
+    {% if message %}
+    <div class="message {{ 'success' if message and ('saved' in message or 'cleared' in message or 'updated' in message) else 'error' }}">{{ message }}</div>
+    {% endif %}
+    <div class="card">
+        <form method="post" action="{{ url_for('settings') }}">
+            <label for="hourly_rate">Default hourly rate (VUV)</label>
+            <input type="number" id="hourly_rate" name="hourly_rate" min="0" step="1"
+                   value="{{ hourly_rate if hourly_rate is not none else '' }}"
+                   placeholder="e.g. 3000">
+            <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #666;">
+                Used when adding a new record if you leave the hourly rate field empty.
+            </p>
+            <label for="break_minutes">Default break (minutes)</label>
+            <input type="number" id="break_minutes" name="break_minutes" min="0" step="1"
+                   value="{{ break_minutes if break_minutes is not none else '' }}"
+                   placeholder="e.g. 30">
+            <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #666;">
+                Used when adding a new record if you leave the break field empty.
+            </p>
+            <label for="vnpf_employee_rate_percent">VNPF employee deduction (% of gross pay)</label>
+            <input type="number" id="vnpf_employee_rate_percent" name="vnpf_employee_rate_percent"
+                   min="0" max="100" step="0.1"
+                   value="{{ '%.1f' % vnpf_employee_rate_percent }}">
+            <p style="margin: 0 0 1rem 0; font-size: 0.85rem; color: #666;">
+                Shown on payslips: withheld from each row’s total pay (gross). Default <strong>6%</strong> as requested.
+                The <a href="https://www.vnpf.com.vu/employers.html" target="_blank" rel="noopener">VNPF employers page</a>
+                states the current contribution is <strong>8%</strong> of monthly remuneration in total
+                (<strong>4%</strong> employee + <strong>4%</strong> employer)—adjust this field if you need to match the official employee share.
+            </p>
+            <button type="submit" class="btn btn-save">Save</button>
+        </form>
+    </div>
+</body>
+</html>

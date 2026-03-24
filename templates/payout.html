@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payout – Worker Records</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            background: #f8f8f8;
+            color: #222;
+        }
+        h1 { font-size: 1.35rem; margin-bottom: 1rem; color: #333; }
+        .nav { margin-bottom: 1rem; }
+        .btn { padding: 0.5rem 1rem; border-radius: 4px; font-size: 0.9rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; display: inline-block; }
+        .btn-back { background: #e5e7eb; color: #374151; }
+        .btn-back:hover { background: #d1d5db; }
+        .btn-paid { background: #059669; color: #fff; }
+        .btn-paid:hover { background: #047857; }
+        .filter-bar {
+            background: #fff;
+            padding: 1rem 1.25rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+        .filter-bar label { font-size: 0.8rem; font-weight: 600; color: #555; display: block; margin-bottom: 0.25rem; }
+        .filter-bar input { padding: 0.4rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95rem; }
+        .card {
+            background: #fff;
+            padding: 1rem 1.25rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+        .card h2 { font-size: 1rem; margin: 0 0 0.75rem 0; color: #444; }
+        .total-big { font-size: 1.5rem; font-weight: 700; color: #166534; }
+        .table-wrap { overflow-x: auto; border: 1px solid #333; border-radius: 4px; background: #fff; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { border: 1px solid #333; padding: 0.4rem 0.6rem; text-align: left; }
+        th { background: #f0f0f0; font-weight: 700; }
+        .num { text-align: right; }
+    </style>
+</head>
+<body>
+    <div class="nav" style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 style="margin: 0;">Payout</h1>
+        <a href="{{ url_for('index') }}" class="btn btn-back">← Records</a>
+    </div>
+
+    <div class="filter-bar">
+        <form method="get" action="{{ url_for('payout') }}" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+            <div>
+                <label for="filter_worker">Worker</label>
+                <input type="text" id="filter_worker" name="worker" placeholder="Name" value="{{ filter_worker or '' }}">
+            </div>
+            <div>
+                <label for="filter_week">Week of</label>
+                <input type="date" id="filter_week" name="week" value="{{ filter_week or '' }}">
+            </div>
+            <div>
+                <label for="filter_from">From</label>
+                <input type="date" id="filter_from" name="from" value="{{ filter_from or '' }}">
+            </div>
+            <div>
+                <label for="filter_to">To</label>
+                <input type="date" id="filter_to" name="to" value="{{ filter_to or '' }}">
+            </div>
+            <div>
+                <button type="submit" class="btn" style="background: #2563eb; color: #fff;">Filter</button>
+            </div>
+            {% if filter_worker or filter_week or filter_from or filter_to %}
+            <div>
+                <a href="{{ url_for('payout') }}" class="btn btn-back">Show all</a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Unpaid total</h2>
+        <p style="margin: 0;">
+            {% if filter_worker or filter_week or filter_from or filter_to %}
+            <span class="total-big">{{ "{:,.0f}".format(total_unpaid) }} Vt</span> (selection)
+            {% else %}
+            <span class="total-big">{{ "{:,.0f}".format(total_unpaid_all) }} Vt</span> (all)
+            {% endif %}
+        </p>
+        <p style="margin: 0.75rem 0 0 0;">
+            <a href="{{ payslip_url }}"
+               class="btn" style="background: #1d4ed8; color: #fff;">View payslip</a>
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Mark as paid</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+            <form method="post" action="{{ url_for('payout') }}" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+                <input type="hidden" name="action" value="mark_week_paid">
+                <div>
+                    <label for="pay_week">Week of</label>
+                    <input type="date" id="pay_week" name="pay_week">
+                </div>
+                <div>
+                    <label for="pay_worker">Worker (optional)</label>
+                    <input type="text" id="pay_worker" name="pay_worker" placeholder="All if empty">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-paid">Mark week</button>
+                </div>
+            </form>
+            <span style="color: #888;">or</span>
+            <form method="post" action="{{ url_for('payout') }}" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;">
+                <input type="hidden" name="action" value="mark_range_paid">
+                <div>
+                    <label for="pay_from">From</label>
+                    <input type="date" id="pay_from" name="pay_from">
+                </div>
+                <div>
+                    <label for="pay_to">To</label>
+                    <input type="date" id="pay_to" name="pay_to">
+                </div>
+                <div>
+                    <label for="pay_worker_range">Worker (optional)</label>
+                    <input type="text" id="pay_worker_range" name="pay_worker" placeholder="All if empty">
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-paid">Mark range</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Unpaid records</h2>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Worker</th>
+                        <th>In</th>
+                        <th>Out</th>
+                        <th class="num">Break</th>
+                        <th class="num">Hours</th>
+                        <th class="num">Total Pay</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td>{{ r.date_display or r.date }}</td>
+                        <td>{{ r.worker_name }}</td>
+                        <td>{{ r.in_time }}</td>
+                        <td>{{ r.out_time }}</td>
+                        <td class="num">{{ r.break_minutes or 0 }} min</td>
+                        <td class="num">{{ r.hours_worked }}</td>
+                        <td class="num">{% if r.total_pay is not none %}{{ "{:,.0f}".format(r.total_pay) }} Vt{% else %}—{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not records %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: #888;">No unpaid records.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
